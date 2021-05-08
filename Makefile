@@ -2,17 +2,11 @@ CC = g++
 debug_flags = -O3 -Wall -std=c++11 -g -lm
 flags = -O3 -Wall -std=c++11 -lm
 
-# randomDAG input parameters
-params = 3000 0.3
-
-all: random src/final.cpp
-	$(CC) $(flags) -o cmake-build-debug/final src/final.cpp
+all: src/main.cpp
+	$(CC) $(flags) -o cmake-build-debug/main src/main.cpp
 
 run: all
-	time ./cmake-build-debug/final < tests/problems.txt
-
-debug: src/main.cpp
-	$(CC) $(debug_flags) -o cmake-build-debug/debug src/main.cpp
+	time ./cmake-build-debug/main < tests/problems.txt
 
 clean:
-	rm -f cmake-build-debug/final cmake-build-debug/randomDAG
+	rm -f cmake-build-debug/main
