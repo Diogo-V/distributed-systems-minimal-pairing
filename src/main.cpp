@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 
 
 /* Represent processes X and Y. X is going to be put in second last position of our adjacency array
@@ -69,9 +70,9 @@ private:
     vector<nodeInfoStruct> _nodeInfo;
 
     /**
-     * @brief Holds all the nodes which this node leads to. Uses a pair to hold the edge's weight.
+     * @brief Holds all the nodes which this node leads to.
      */
-    vector<vector<pair<int, edgeInfoStruct>>> _adjacent;
+    vector<unordered_map<int, edgeInfoStruct>> _adjacent;
 
     /**
      * @brief Holds number of vertices inside this graph.
@@ -115,17 +116,17 @@ public:
      * @param child child node
      * @return pair<int, edgeInfoStruct> edge info between this two nodes
      */
-    pair<int, edgeInfoStruct> getEdgeInfo(int parent, int child) {
-        return this->getAdjacentNodes(parent)[child];
+    edgeInfoStruct getEdgeInfo(int parent, int child) {
+        return this->getAdjacentNodes(parent).find(child)->second;
     };
 
     /**
      * @brief Get the Adjacent Nodes object.
      *
      * @param node node value
-     * @return vector<pair<int, int>> representing a list of connected nodes and their weights
+     * @return unordered_map<int, edgeInfoStruct> map of connected nodes and their weights
      */
-    vector<pair<int, edgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
+    unordered_map<int, edgeInfoStruct> getAdjacentNodes(int node) { return this->_adjacent[node]; };
 
     /**
      * @brief Get the Number of Nodes object.
@@ -154,8 +155,8 @@ public:
 
         /* Creates a connection between two nodes */
         edgeInfoStruct edge(weight);
-        this->_adjacent[parent].push_back(make_pair(child, edge));
-        this->_adjacent[child].push_back(make_pair(parent, edge));
+        this->_adjacent[parent].insert(make_pair(child, edge));
+        this->_adjacent[child].insert(make_pair(parent, edge));
 
     }
 
@@ -266,8 +267,8 @@ Graph initGraph() {
     /* Populates connections between processors and processes */
     for (int node = 0; node < nNodes; node++) {
         scanf("%d %d", &costX, &costY);
-        graph.addEdge(node, X, node);
-        graph.addEdge(node, Y, node);
+        graph.addEdge(node, X, costX);
+        graph.addEdge(node, Y, costY);
     }
 
     /* Populates connections between processes. We subtract 1 to remove the offset */
