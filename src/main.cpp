@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <deque>
-#include <unordered_map>
 
 
 /* Represent processes X and Y. X is going to be put in second last position of our adjacency array
@@ -72,7 +71,7 @@ private:
     /**
      * @brief Holds all the nodes which this node leads to.
      */
-    vector<unordered_map<int, edgeInfoStruct>> _adjacent;
+    vector<vector<pair<int, edgeInfoStruct>>> _adjacent;
 
     /**
      * @brief Holds number of vertices inside this graph.
@@ -117,16 +116,16 @@ public:
      * @return pair<int, edgeInfoStruct> edge info between this two nodes
      */
     edgeInfoStruct getEdgeInfo(int parent, int child) {
-        return this->getAdjacentNodes(parent).find(child)->second;
+        return this->getAdjacentNodes(parent)[child].second;
     };
 
     /**
      * @brief Get the Adjacent Nodes object.
      *
      * @param node node value
-     * @return unordered_map<int, edgeInfoStruct> map of connected nodes and their weights
+     * @return vector<pair<int, edgeInfoStruct>> list of connected nodes and their weights
      */
-    unordered_map<int, edgeInfoStruct> getAdjacentNodes(int node) { return this->_adjacent[node]; };
+    vector<pair<int, edgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
 
     /**
      * @brief Get the Number of Nodes object.
@@ -155,8 +154,8 @@ public:
 
         /* Creates a connection between two nodes */
         edgeInfoStruct edge(weight);
-        this->_adjacent[parent].insert(make_pair(child, edge));
-        this->_adjacent[child].insert(make_pair(parent, edge));
+        this->_adjacent[parent].push_back(make_pair(child, edge));
+        this->_adjacent[child].push_back(make_pair(parent, edge));
 
     }
 
@@ -219,11 +218,11 @@ public:
     void print() {
         int v, w;
         for (int u = 0; u < this->getNumberOfNodes(); u++) {
-            cout << "Node " << u << " makes an edge with \n";
+            cout << "Node " << u + 1 << " makes an edge with \n";
             for (auto & it : this->getAdjacentNodes(u)) {
                 v = it.first;
                 w = it.second.max_flux;
-                cout << "\tNode " << v << " with edge weight =" << w << "\n";
+                cout << "\tNode " << v + 1 << " with edge weight =" << w << "\n";
             }
             cout << "\n";
         }
