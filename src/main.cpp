@@ -226,7 +226,7 @@ public:
     }
 
 
-    bool bfs(int parent[]){
+    bool bfs(int parent[], int position[]){
         // Create a visited array and mark all vertices as not
         // visited
         bool visited[getNumberOfNodes()];
@@ -236,11 +236,13 @@ public:
         bfsAux.push(X);
         visited[X] = true;
         parent[X] = -1;
+        position[X] = -1;
 
         /* Proceeds with the BFS*/
         while (!bfsAux.empty()) {
-            int otherNode, w;
+            int otherNode;
             int node = bfsAux.front();
+            int i = 0;
             bfsAux.pop();
 
             for (auto & it : this->getAdjacentNodes(node)) {
@@ -249,6 +251,7 @@ public:
                 /* If the current node is the sink, we found an path*/
                 if(otherNode == Y && it.second->residualCapacity() > 0){
                     parent[Y] = node;
+                    position[otherNode] = i;
                     return true;
                 }
                 /* We will check if has a path in the Residual Graph and we haven't already visited the node*/
@@ -258,7 +261,10 @@ public:
                     /* We will push the vertex in the bfsAux*/
                     bfsAux.push(otherNode);
                     parent[otherNode] = node;
+                    position[otherNode] = i;
                 }
+
+                i++;
             }
 
             visited[node] = true;
@@ -341,31 +347,25 @@ void solveDistributedSystems(Graph* graph){
     /* Array of parents, populated by the BFS*/
     int parent[graph->getNumberOfNodes()];
 
+    /* Array of positions in parent's list of adjacencies, populated by the BFS*/
+    int position[graph->getNumberOfNodes()];
+
     int max_flow = 0;
 
     /* While there is an augmentation path from X to Y*/
-    while (graph->bfs(parent)) {
+    while (graph->bfs(parent, position)) {
         /* Find the augmentation path and increase the vertex's flow by the minimum residual capacity*/
         int minRC = INT_MAX;
-        int v, u;
+        int v;
 
         for (v = Y; v != X; v = parent[v]) {
-            u = parent[v];
-            //TODO: aceder assim é pouco produtivo
-            for (auto & it : graph->getAdjacentNodes(v)){
-                if(it.first == u) {
-                    minRC = min(minRC, it.second->residualCapacity());
-                    break;
-                }
-
-            }
-
+            minRC = min(minRC, graph->getEdgeInfo(parent[v], position[v])->residualCapacity());
         }
 
-        //printf("%d", minRC);
 
         for (v = Y; v != X; v = parent[v]) {
-            u = parent[v];
+            graph->getEdgeInfo(parent[v], position[v])->setCurrentFlux(minRC);
+            /*u = parent[v];
 
             //TODO: posso melhorar
 
@@ -374,7 +374,7 @@ void solveDistributedSystems(Graph* graph){
                     it.second->setCurrentFlux(minRC);
                     break;
                 }
-            }
+            }*/
 
         }
 
@@ -389,8 +389,8 @@ void solveDistributedSystems(Graph* graph){
     }
 
 
-    // Return the overall flow
-    cout << max_flow << " " << endl;
+    // Return the overall flow //TODO: precisamos de alterar
+    printf("%d\n", max_flow);
 }
 
 
