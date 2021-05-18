@@ -61,6 +61,7 @@ typedef struct edgeInfoStruct {
         return max_flux - current_flux;
     }
 
+    //TODO: alterar nome
     void setCurrentFlux(int n){
         this->current_flux += n;
     }
@@ -229,12 +230,14 @@ public:
     bool bfs(int parent[], int position[]){
         // Create a visited array and mark all vertices as not
         // visited
+        // TODO: utilizar cores
         bool visited[getNumberOfNodes()];
         memset(visited, 0, sizeof(visited));
 
         queue<int> bfsAux;
         bfsAux.push(X);
         visited[X] = true;
+        // TODO: colocar como parâmetros para os nós
         parent[X] = -1;
         position[X] = -1;
 
