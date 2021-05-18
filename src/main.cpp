@@ -1,10 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <deque>
+#include <queue>
+#include <cstring>
+#include <climits>
 
 
-/* Represent processes X and Y. X is going to be put in second last position of our adjacency array
- * and Y is going to be put in the last position */
+/* Represent processes X and Y. Y is going to be put in second last position of our adjacency array
+ * and X is going to be put in the last position. X represents the source and Y the sink */
 int X = 0, Y = 0;
 
 
@@ -25,17 +28,16 @@ enum class Color { white, black, grey };  // TODO: não sei se vai ser preciso m
  * @brief Holds information about the related node.
  *
  * @param color represents the current state of the node
- * @param inDegree holds the amount of nodes connected to this node
+ * @param bfsParent holds the parent in the bfs
  * @param dist holds distance to another Source
  */
 typedef struct nodeInfoStruct {  // TODO: Não sei se vai ser preciso, mas deixei aqui para referência
     Color color;
-    int inDegree;
+    int bfsParent;
     int dist;
     nodeInfoStruct() {
-        color = Color::white;
-        inDegree = 0;
-        dist = 1;
+        bfsParent = -1;
+        dist = -1;
     };
 } nodeInfoStruct;
 
@@ -49,11 +51,21 @@ typedef struct nodeInfoStruct {  // TODO: Não sei se vai ser preciso, mas deixe
 typedef struct edgeInfoStruct {
     int current_flux;
     int max_flux;
+
     explicit edgeInfoStruct(int weight) {
         current_flux = 0;
         max_flux = weight;
     }
-} edgeInfoStruct;
+
+    int residualCapacity(){
+        return max_flux - current_flux;
+    }
+
+    void setCurrentFlux(int n){
+        this->current_flux += n;
+    }
+
+} * pedgeInfoStruct;
 
 
 /**
@@ -71,7 +83,7 @@ private:
     /**
      * @brief Holds all the nodes which this node leads to.
      */
-    vector<vector<pair<int, edgeInfoStruct>>> _adjacent;
+    vector<vector<pair<int, pedgeInfoStruct>>> _adjacent;
 
     /**
      * @brief Holds number of vertices inside this graph.
@@ -113,9 +125,9 @@ public:
      *
      * @param parent parent node
      * @param child child node
-     * @return pair<int, edgeInfoStruct> edge info between this two nodes
+     * @return pair<int, pedgeInfoStruct> edge info between this two nodes
      */
-    edgeInfoStruct getEdgeInfo(int parent, int child) {
+    pedgeInfoStruct getEdgeInfo(int parent, int child) {
         return this->getAdjacentNodes(parent)[child].second;
     };
 
@@ -125,7 +137,7 @@ public:
      * @param node node value
      * @return vector<pair<int, edgeInfoStruct>> list of connected nodes and their weights
      */
-    vector<pair<int, edgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
+    vector<pair<int, pedgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
 
     /**
      * @brief Get the Number of Nodes object.
@@ -133,6 +145,7 @@ public:
      * @return number of nodes
      */
     int getNumberOfNodes() const { return this->_numberOfNodes; };
+
 
     /**
      * @brief Changes node's distance.
@@ -153,18 +166,18 @@ public:
     void addEdge(int parent, int child, int weight) {
 
         /* Creates a connection between two nodes */
-        edgeInfoStruct edge(weight);
+        pedgeInfoStruct edge = new edgeInfoStruct(weight);
         this->_adjacent[parent].push_back(make_pair(child, edge));
         this->_adjacent[child].push_back(make_pair(parent, edge));
 
     }
 
     /**
-     * @brief Performs an iterative DFS traversal of this graph starting from first node (1).
+     * @brief Performs an iterative DFS traversal of this graph starting from node 1.
      *
-     * @return deque with nodes in topological order
+     * @return deque with nodes in the minimum path from X to Y
      */
-    deque<int> dfs() {  // TODO: Deixei a DFS para o caso de quereres tirar alguma ideia
+    deque<int> dfs() {  
 
         /* Holds nodes that we are visiting or are about to visit */
         deque<int> dfsAux;
@@ -212,6 +225,49 @@ public:
         return topological;
     }
 
+
+    bool bfs(int parent[]){
+        // Create a visited array and mark all vertices as not
+        // visited
+        bool visited[getNumberOfNodes()];
+        memset(visited, 0, sizeof(visited));
+
+        queue<int> bfsAux;
+        bfsAux.push(X);
+        visited[X] = true;
+        parent[X] = -1;
+
+        /* Proceeds with the BFS*/
+        while (!bfsAux.empty()) {
+            int otherNode, w;
+            int node = bfsAux.front();
+            bfsAux.pop();
+
+            for (auto & it : this->getAdjacentNodes(node)) {
+                otherNode = it.first;
+                //printf("%d\n", otherNode);
+                /* If the current node is the sink, we found an path*/
+                if(otherNode == Y && it.second->residualCapacity() > 0){
+                    parent[Y] = node;
+                    return true;
+                }
+                /* We will check if has a path in the Residual Graph and we haven't already visited the node*/
+                if(!visited[otherNode] && it.second->residualCapacity() > 0){
+                    /* The vertex will be marked as visited*/
+                    visited[otherNode] = true;
+                    /* We will push the vertex in the bfsAux*/
+                    bfsAux.push(otherNode);
+                    parent[otherNode] = node;
+                }
+            }
+
+            visited[node] = true;
+        }
+
+        /* We were unable to find a path from X to Y*/
+        return false;
+    }
+
     /**
      * @brief Used to print graph's connections. Mainly used for debugging purposes.
      */
@@ -221,8 +277,8 @@ public:
             cout << "Node " << u + 1 << " makes an edge with \n";
             for (auto & it : this->getAdjacentNodes(u)) {
                 v = it.first;
-                w = it.second.max_flux;
-                cout << "\tNode " << v + 1 << " with edge weight =" << w << "\n";
+                w = it.second->max_flux;
+                cout << "\tNode " << v + 1 << " with edge weight = " << w << "\n";
             }
             cout << "\n";
         }
@@ -281,6 +337,63 @@ Graph initGraph() {
 }
 
 
+void solveDistributedSystems(Graph* graph){
+    /* Array of parents, populated by the BFS*/
+    int parent[graph->getNumberOfNodes()];
+
+    int max_flow = 0;
+
+    /* While there is an augmentation path from X to Y*/
+    while (graph->bfs(parent)) {
+        /* Find the augmentation path and increase the vertex's flow by the minimum residual capacity*/
+        int minRC = INT_MAX;
+        int v, u;
+
+        for (v = Y; v != X; v = parent[v]) {
+            u = parent[v];
+            //TODO: aceder assim é pouco produtivo
+            for (auto & it : graph->getAdjacentNodes(v)){
+                if(it.first == u) {
+                    minRC = min(minRC, it.second->residualCapacity());
+                    break;
+                }
+
+            }
+
+        }
+
+        //printf("%d", minRC);
+
+        for (v = Y; v != X; v = parent[v]) {
+            u = parent[v];
+
+            //TODO: posso melhorar
+
+            for (auto & it : graph->getAdjacentNodes(v)){
+                if(it.first == u) {
+                    it.second->setCurrentFlux(minRC);
+                    break;
+                }
+            }
+
+        }
+
+        // Add path flow to overall flow
+        max_flow += minRC;
+
+
+        /* Resets parents array*/
+        //for (v = 0; v < graph->getNumberOfNodes(); v++){
+          //  parent[v] = -1;
+        //}
+    }
+
+
+    // Return the overall flow
+    cout << max_flow << " " << endl;
+}
+
+
 /**
  * @brief Driver code.
  *
@@ -294,5 +407,6 @@ int main() {
     /* TODO: Remove this. Used for debug */
     graph.print();
 
-    return 0;
+    solveDistributedSystems(&graph);
+    exit(EXIT_SUCCESS);
 }
