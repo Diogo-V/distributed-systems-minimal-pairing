@@ -3,6 +3,7 @@
 #include <vector>
 #include <deque>
 #include <queue>
+#include <unordered_map>
 
 #define MAX 10000000
 
@@ -84,7 +85,7 @@ private:
     /**
      * @brief Holds all the nodes which this node leads to.
      */
-    vector<vector<pair<int, pedgeInfoStruct>>> _adjacent;
+    vector<unordered_map<int, pedgeInfoStruct>> _adjacent;
 
     /**
      * @brief Holds number of vertices inside this graph.
@@ -129,7 +130,7 @@ public:
      * @return pair<int, pedgeInfoStruct> edge info between this two nodes
      */
     pedgeInfoStruct getEdgeInfo(int parent, int child) {
-        return this->getAdjacentNodes(parent)[child].second;
+        return this->getAdjacentNodes(parent)[child];
     };
 
     /**
@@ -138,7 +139,7 @@ public:
      * @param node node value
      * @return vector<pair<int, edgeInfoStruct>> list of connected nodes and their weights
      */
-    vector<pair<int, pedgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
+    unordered_map<int, pedgeInfoStruct> getAdjacentNodes(int node) { return this->_adjacent[node]; };
 
     /**
      * @brief Get the Number of Nodes object.
@@ -167,9 +168,9 @@ public:
     void addEdge(int parent, int child, int weight) {
 
         /* Creates a connection between two nodes */
-        pedgeInfoStruct edge = new edgeInfoStruct(weight);
-        this->_adjacent[parent].push_back(make_pair(child, edge));
-        this->_adjacent[child].push_back(make_pair(parent, edge));
+        auto edge = new edgeInfoStruct(weight);
+        this->_adjacent[parent].insert(make_pair(child, edge));
+        this->_adjacent[child].insert(make_pair(parent, edge));
 
     }
 
