@@ -1,5 +1,4 @@
 #include <iostream>
-#include <memory.h>
 #include <vector>
 #include <deque>
 #include <queue>
@@ -10,16 +9,13 @@
  * and X is going to be put in the last position. X represents the source and Y the sink */
 int X = 0, Y = 0;
 
-
 using namespace std;
-
 
 /**
  * @brief Represents a node's color. Used mainly during DFS.
  *
- * @param white node has not been reached
- * @param grey node has been put in stack
- * @param black node has been totally visited
+ * @param white node has not been visited
+ * @param black node has been visited
  */
 enum class Color { white, black};
 
@@ -29,7 +25,7 @@ enum class Color { white, black};
  *
  * @param color represents the current state of the node
  * @param bfsParent holds the parent in the bfs
- * @param dist holds distance to another Source
+ * @param bfsParentPosition holds the position of this node if the adjacent's list of its parent
  */
 typedef struct nodeInfoStruct {
     Color color;
@@ -40,18 +36,6 @@ typedef struct nodeInfoStruct {
         color = Color::white;
         bfsParentPosition = -1;
     };
-
-    void setColor(Color new_color){
-        this->color = new_color;
-    }
-
-    void setBfsParent(int n){
-        this->bfsParent = n;
-    }
-
-    void setBfsParentPosition(int n){
-        this->bfsParentPosition = n;
-    }
 
 } nodeInfoStruct;
 
@@ -177,12 +161,32 @@ public:
 
     }
 
+    /**
+     * @brief Changes node color
+     *
+     * @param node node value
+     * @param color node color
+     */
     void setColor(int node, Color color) { this->_nodeInfo[node].color = color; }
 
+    /**
+     * @brief Changes node position
+     * @param node node value
+     * @param pos new position of node if the adjacent's list of its parent in bfs
+     */
     void setPosition(int node, int pos) { this->_nodeInfo[node].bfsParentPosition = pos; }
 
+    /**
+     * @brief Change node parent
+     * @param node node value
+     * @param parent new parent of node in bfs
+     */
     void setParent(int node, int parent) { this->_nodeInfo[node].bfsParent = parent; }
 
+    /**
+     * @brief Executes a bfs
+     * @return boolean
+     */
     bool bfs(){
         /* Mark all vertex as not visited*/
         for (int i = 0; i < this->getNumberOfNodes(); i++){
@@ -201,11 +205,10 @@ public:
             int node = bfsAux.front();
             bfsAux.pop();
 
-            //TODO: podemos melhorar estes ifs
+            /* Iterates through nodes adjacent list */
             for (auto & it : this->getAdjacentNodes(node)) {
                 otherNode = it.first;
-                //printf("%d\n", otherNode);
-                /* If the current node is the sink, we found an path*/
+                /* If the current node is the sink, we found a path*/
                 if(otherNode == Y && it.second->residualCapacity() > 0){
                     this->setParent(Y, node);
                     this->setPosition(otherNode, i);
@@ -224,27 +227,12 @@ public:
                 i++;
             }
 
+            /* This vertex has been visited*/
             this->setColor(node, Color::black);
         }
 
-        /* We were unable to find a path from X to Y */
+        /* We were unable to find a path from X to Y*/
         return false;
-    }
-
-    /**
-     * @brief Used to print graph's connections. Mainly used for debugging purposes.
-     */
-    void print() {
-        int v, w;
-        for (int u = 0; u < this->getNumberOfNodes(); u++) {
-            cout << "Node " << u + 1 << " makes an edge with \n";
-            for (auto & it : this->getAdjacentNodes(u)) {
-                v = it.first;
-                w = it.second->max_flux;
-                cout << "\tNode " << v + 1 << " with edge weight = " << w << "\n";
-            }
-            cout << "\n";
-        }
     }
 };
 
@@ -295,37 +283,41 @@ Graph initGraph() {
         graph.addEdge(from - 1, to - 1, costCom);
     }
 
+
     return graph;
 
 }
 
-
+/**
+ * @brief Given a graph, finds the maximum flow with the edmonds karp, using a bfs to find the augmentations paths.
+ *
+ * @param graph
+ */
 void solveDistributedSystems(Graph* graph){
-
+    /* Maximum flow initialized at 0 as every edge has 0 current flow*/
     int max_flow = 0;
 
     /* While there is an augmentation path from X to Y */
     while (graph->bfs()) {
-        /* Find the augmentation path and increase the vertex's flow by the minimum residual capacity */
         int minRC = MAX;
         int v;
 
+        /* In the augmentation path we found, we find the minimum residual capacity*/
         for (v = Y; v != X; v = graph->getNodeInfo(v).bfsParent) {
             minRC = min(minRC, graph->getEdgeInfo(graph->getNodeInfo(v).bfsParent, graph->getNodeInfo(v).bfsParentPosition)->residualCapacity());
         }
 
-
+        /* In the augmentation path we found, we increase the vertex's flow by the minimum residual capacity */
         for (v = Y; v != X; v = graph->getNodeInfo(v).bfsParent) {
             graph->getEdgeInfo(graph->getNodeInfo(v).bfsParent, graph->getNodeInfo(v).bfsParentPosition)->setCurrentFlux(minRC);
         }
 
-        // Add path flow to overall flow
+        /*Add the minimum capacity to the maximum flow*/
         max_flow += minRC;
-
     }
 
 
-    // Return the overall flow //TODO: precisamos de alterar
+    /* Outputs final result */
     cout << max_flow << endl;
 }
 
@@ -340,9 +332,7 @@ int main() {
     /* Initializes problem's structure and variables */
     Graph graph = initGraph();
 
-    /* TODO: Remove this. Used for debug */
-    // graph.print();
-
+    /* Finds maximum flow with the edmonds-karp algorithm. Prints it on the screen */
     solveDistributedSystems(&graph);
 
     exit(EXIT_SUCCESS);
