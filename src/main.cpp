@@ -3,7 +3,6 @@
 #include <vector>
 #include <deque>
 #include <queue>
-#include <unordered_map>
 
 #define MAX 10000000
 
@@ -22,7 +21,7 @@ using namespace std;
  * @param grey node has been put in stack
  * @param black node has been totally visited
  */
-enum class Color { white, black, grey };  // TODO: não sei se vai ser preciso mas deixei aqui para referencia
+enum class Color { white, black};
 
 
 /**
@@ -32,14 +31,28 @@ enum class Color { white, black, grey };  // TODO: não sei se vai ser preciso m
  * @param bfsParent holds the parent in the bfs
  * @param dist holds distance to another Source
  */
-typedef struct nodeInfoStruct {  // TODO: Não sei se vai ser preciso, mas deixei aqui para referência
+typedef struct nodeInfoStruct {
     Color color;
     int bfsParent;
-    int dist;
-    nodeInfoStruct() {
+    int bfsParentPosition;
+    explicit nodeInfoStruct() {
         bfsParent = -1;
-        dist = -1;
+        color = Color::white;
+        bfsParentPosition = -1;
     };
+
+    void setColor(Color new_color){
+        this->color = new_color;
+    }
+
+    void setBfsParent(int n){
+        this->bfsParent = n;
+    }
+
+    void setBfsParentPosition(int n){
+        this->bfsParentPosition = n;
+    }
+
 } nodeInfoStruct;
 
 
@@ -62,7 +75,6 @@ typedef struct edgeInfoStruct {
         return max_flux - current_flux;
     }
 
-    //TODO: alterar nome
     void setCurrentFlux(int n){
         this->current_flux += n;
     }
@@ -85,7 +97,7 @@ private:
     /**
      * @brief Holds all the nodes which this node leads to.
      */
-    vector<unordered_map<int, pedgeInfoStruct>> _adjacent;
+    vector<vector<pair<int, pedgeInfoStruct>>> _adjacent;
 
     /**
      * @brief Holds number of vertices inside this graph.
@@ -130,7 +142,7 @@ public:
      * @return pair<int, pedgeInfoStruct> edge info between this two nodes
      */
     pedgeInfoStruct getEdgeInfo(int parent, int child) {
-        return this->getAdjacentNodes(parent)[child];
+        return this->getAdjacentNodes(parent)[child].second;
     };
 
     /**
@@ -139,7 +151,7 @@ public:
      * @param node node value
      * @return vector<pair<int, edgeInfoStruct>> list of connected nodes and their weights
      */
-    unordered_map<int, pedgeInfoStruct> getAdjacentNodes(int node) { return this->_adjacent[node]; };
+    vector<pair<int, pedgeInfoStruct>> getAdjacentNodes(int node) { return this->_adjacent[node]; };
 
     /**
      * @brief Get the Number of Nodes object.
@@ -148,15 +160,6 @@ public:
      */
     int getNumberOfNodes() const { return this->_numberOfNodes; };
 
-
-    /**
-     * @brief Changes node's distance.
-     *
-     * @param node node to be changed
-     * @param dist new distance
-     */
-    // TODO: Deixei esta aqui para teres uma referência de como modificar a informação de um nó
-    void setNodeDistance(int node, int dist) { this->_nodeInfo[node].dist = dist; };
 
     /**
      * @brief Inserts a new bi-directional edge between two nodes.
@@ -169,109 +172,54 @@ public:
 
         /* Creates a connection between two nodes */
         auto edge = new edgeInfoStruct(weight);
-        this->_adjacent[parent].insert(make_pair(child, edge));
-        this->_adjacent[child].insert(make_pair(parent, edge));
+        this->_adjacent[parent].push_back(make_pair(child, edge));
+        this->_adjacent[child].push_back(make_pair(parent, edge));
 
     }
 
-    /**
-     * @brief Performs an iterative DFS traversal of this graph starting from node 1.
-     *
-     * @return deque with nodes in the minimum path from X to Y
-     */
-    deque<int> dfs() {  
 
-        /* Holds nodes that we are visiting or are about to visit */
-        deque<int> dfsAux;
-
-        /* Holds nodes that have been already visited in topological order */
-        deque<int> topological;
-
-        /* Visits each node (domino piece) in our graph */
-        for (int parent = 1; parent <= this->getNumberOfNodes(); parent++) {
-
-            /* If it has not been yet visited, we put it inside our dfs aux */
-            if (this->getNodeInfo(parent).color == Color::white)
-                dfsAux.push_front(parent);
-
-            /* We keep visiting node until all the nodes have turned black (fully visited) */
-            while (!dfsAux.empty()) {
-
-                /* Gets last node being put inside our auxiliary. It mimics what a recursion
-                 * would have done */
-                int node = dfsAux.front();
-
-                /* If we have already visited everything from this node, we put it in our topological
-                 * stack and go to next iteration */
-                if (this->getNodeInfo(node).color == Color::black) {
-                    dfsAux.pop_front();
-                    topological.push_front(node);
-                    continue;
-                }
-
-                /* Since we are about to visit each child from this node, we set it as grey */
-                // this->setNodeColor(node, Color::grey);
-
-                /* Puts every not yet visited child node inside aux */
-//                for (int son : this->getAdjacentNodes(node))
-//                    if(this->getNodeInfo(son).color == Color::white)
-//                        dfsAux.push_front(son);
-
-                /* Since we have put all it's children inside the aux, it has finished */
-                // this->setNodeColor(node, Color::black);
-
-            }
-
+    bool bfs(){
+        /* Mark all vertex as not visited*/
+        for (int i = 0; i < this->getNumberOfNodes(); i++){
+            this->getNodeInfo(i).setColor(Color::white);
         }
-
-        return topological;
-    }
-
-
-    bool bfs(int parent[], int position[]){
-        // Create a visited array and mark all vertices as not
-        // visited
-        // TODO: utilizar cores
-        bool visited[getNumberOfNodes()];
-        memset(visited, 0, sizeof(visited));
+        /* Mark the source as visited */
+        this->getNodeInfo(X).setColor(Color::black);
 
         queue<int> bfsAux;
         bfsAux.push(X);
-        visited[X] = true;
-        parent[X] = -1;  /* Saves node's parent */
-        position[X] = -1;  /*  */
-        // TODO: colocar como parâmetros para os nós
 
         /* Proceeds with the BFS*/
         while (!bfsAux.empty()) {
             int otherNode;
-            int node = bfsAux.front();
             int i = 0;
+            int node = bfsAux.front();
             bfsAux.pop();
 
+            //TODO: podemos melhorar estes ifs
             for (auto & it : this->getAdjacentNodes(node)) {
                 otherNode = it.first;
                 //printf("%d\n", otherNode);
                 /* If the current node is the sink, we found an path*/
                 if(otherNode == Y && it.second->residualCapacity() > 0){
-                    parent[Y] = node;
-                    position[otherNode] = i;
+                    this->getNodeInfo(Y).setBfsParent(node);
+                    this->getNodeInfo(otherNode).setBfsParentPosition(i);
                     return true;
                 }
                 /* We will check if has a path in the Residual Graph and we haven't already visited the node*/
-                if(!visited[otherNode] && it.second->residualCapacity() > 0){
+                if(this->getNodeInfo(node).color==Color::white && it.second->residualCapacity() > 0){
                     /* The vertex will be marked as visited*/
-                    visited[otherNode] = true;
+                    this->getNodeInfo(otherNode).setColor(Color::black);
                     /* We will push the vertex in the bfsAux*/
                     bfsAux.push(otherNode);
-                    parent[otherNode] = node;
-                    position[otherNode] = i;
+                    this->getNodeInfo(otherNode).setBfsParent(node);
+                    this->getNodeInfo(otherNode).setBfsParentPosition(i);
                 }
 
                 i++;
             }
 
-            visited[node] = true;
+            this->getNodeInfo(node).setColor(Color::black);
         }
 
         /* We were unable to find a path from X to Y */
@@ -349,48 +297,26 @@ Graph initGraph() {
 
 void solveDistributedSystems(Graph* graph){
 
-    /* Array of parents, populated by the BFS*/
-    int parent[graph->getNumberOfNodes()];
-
-    /* Array of positions in parent's list of adjacencies, populated by the BFS*/
-    int position[graph->getNumberOfNodes()];
-
     int max_flow = 0;
 
     /* While there is an augmentation path from X to Y */
-    while (graph->bfs(parent, position)) {
+    while (graph->bfs()) {
         /* Find the augmentation path and increase the vertex's flow by the minimum residual capacity */
         int minRC = MAX;
         int v;
 
-        for (v = Y; v != X; v = parent[v]) {
-            minRC = min(minRC, graph->getEdgeInfo(parent[v], position[v])->residualCapacity());
+        for (v = Y; v != X; v = graph->getNodeInfo(v).bfsParent) {
+            minRC = min(minRC, graph->getEdgeInfo(graph->getNodeInfo(v).bfsParent, graph->getNodeInfo(v).bfsParentPosition)->residualCapacity());
         }
 
 
-        for (v = Y; v != X; v = parent[v]) {
-            graph->getEdgeInfo(parent[v], position[v])->setCurrentFlux(minRC);
-            /*u = parent[v];
-
-            //TODO: posso melhorar
-
-            for (auto & it : graph->getAdjacentNodes(v)){
-                if(it.first == u) {
-                    it.second->setCurrentFlux(minRC);
-                    break;
-                }
-            }*/
-
+        for (v = Y; v != X; v = graph->getNodeInfo(v).bfsParent) {
+            graph->getEdgeInfo(graph->getNodeInfo(v).bfsParent, graph->getNodeInfo(v).bfsParentPosition)->setCurrentFlux(minRC);
         }
 
         // Add path flow to overall flow
         max_flow += minRC;
 
-
-        /* Resets parents array*/
-        //for (v = 0; v < graph->getNumberOfNodes(); v++){
-          //  parent[v] = -1;
-        //}
     }
 
 
