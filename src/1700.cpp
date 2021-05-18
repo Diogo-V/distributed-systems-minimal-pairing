@@ -57,7 +57,7 @@ typedef struct edgeInfoStruct {
         max_flux = weight;
     }
 
-    int residualCapacity() {
+    int residualCapacity(){
         return max_flux - current_flux;
     }
 
@@ -235,8 +235,8 @@ public:
         queue<int> bfsAux;
         bfsAux.push(X);
         visited[X] = true;
-        parent[X] = -1;  /* Saves node's parent */
-        position[X] = -1;  /*  */
+        parent[X] = -1;  /* Saves  */
+        position[X] = -1;
 
         /* Proceeds with the BFS*/
         while (!bfsAux.empty()) {
